@@ -178,12 +178,12 @@ footer{padding:1.5rem 1.2rem;text-align:center;color:var(--muted);font-size:.72r
   </div>
 </div>
 
-<div class="tabs" id="tabs-nav">
-  <button class="tab active" data-tab="hoje">Hoje</button>
-  <button class="tab" data-tab="dash">Stats</button>
-  <button class="tab" data-tab="plano">Plano</button>
-  <button class="tab" data-tab="visao">Visão</button>
-  <button class="tab" data-tab="dicas">Dicas</button>
+<div class="tabs">
+  <button class="tab active" onclick="showTab('hoje',this)">Hoje</button>
+  <button class="tab" onclick="showTab('dash',this)">Stats</button>
+  <button class="tab" onclick="showTab('plano',this)">Plano</button>
+  <button class="tab" onclick="showTab('visao',this)">Visão</button>
+  <button class="tab" onclick="showTab('dicas',this)">Dicas</button>
 </div>
 
 <!-- ABA HOJE -->
@@ -714,51 +714,49 @@ let _modalId=null,_selectedFeeling=null;
 // Guia de treino por tipo e semana
 function getWorkoutGuide(id, desc, km, tipo){
   if(!tipo) tipo = getTipoFromId(id);
-  const tipo = getTipoFromId(id);
-  const wNum = parseInt(id);
   let guide = '';
 
   if(tipo==='base'){
-    if(desc.includes('1:1')) guide='<b>Estrutura:</b> Alterne exatamente 2min correndo leve + 2min caminhando. Repita até completar a distância. Sem pressa — ritmo de conversa.';
-    else if(desc.includes('2:1')) guide='<b>Estrutura:</b> 3–4min correndo leve + 1min caminhando. Se sentir fôlego, pode diminuir as paradas. Objetivo: cada semana menos caminhada.';
-    else if(desc.includes('3:1')) guide='<b>Estrutura:</b> 3min correndo + 1min caminhando. Você já deve estar quase parando de caminhar. Ritmo leve o tempo todo.';
-    else if(desc.includes('strides')) guide='<b>Estrutura:</b> Corra leve por 80% da distância. Nos últimos 20%: 4 acelerações de 80m (quase sprint, não sprint). Descanso de 60s entre elas. Melhora cadência sem desgastar.';
-    else if(desc.includes('30min')||desc.includes('35min')||desc.includes('40min')||desc.includes('45min')||desc.includes('50min')){
+    if(desc.includes('1:1')) guide='<b>Como fazer:</b> Corra 2min em ritmo bem leve, depois caminhe 2min. Repita esse ciclo até completar os '+km+'km. Teste: você deve conseguir falar frases inteiras enquanto corre. Se não conseguir, reduza o ritmo.';
+    else if(desc.includes('2:1')) guide='<b>Como fazer:</b> Corra 3 ou 4min em ritmo leve, depois caminhe 1min. Repita até completar os '+km+'km. A cada semana a caminhada vai diminuindo naturalmente.';
+    else if(desc.includes('3:1')) guide='<b>Como fazer:</b> Corra 3min em ritmo leve, caminhe 1min. Repita até completar os '+km+'km. Nessa fase você já deve sentir que as paradas estão ficando desnecessárias.';
+    else if(desc.includes('strides')) guide='<b>Como fazer:</b> Corra os primeiros '+Math.round(km*0.8)+'km em ritmo leve. Nos últimos '+Math.round(km*0.2)+'km faça 4 acelerações de 80m — aumente o ritmo progressivamente, não é sprint. Descanse 60s entre cada aceleração. Serve para melhorar a cadência sem desgastar.';
+    else if(desc.includes('20min')||desc.includes('25min')||desc.includes('30min')||desc.includes('35min')||desc.includes('40min')||desc.includes('45min')||desc.includes('50min')){
       const mins=desc.match(/(\d+)min/)?.[1]||'30';
-      guide=`<b>Estrutura:</b> ${mins}min contínuos em ritmo leve — consegue falar frases inteiras sem ofegar. Não olhe o pace, olhe a frequência cardíaca. Fique abaixo de 75% da FC máx.`;
+      guide='<b>Como fazer:</b> Corra '+mins+' minutos contínuos sem parar, em ritmo bem leve. Você deve conseguir falar frases inteiras sem parar para respirar — se não conseguir, reduza o ritmo. Não se preocupe com pace, foque em completar o tempo.';
     }
-    else guide='<b>Estrutura:</b> Corrida leve e contínua. Ritmo de conversa o tempo todo. Se estiver ofegando, vai devagar demais.';
+    else if(desc.includes('pernas descansadas')) guide='<b>Como fazer:</b> Corrida levíssima de 30min para soltar as pernas antes da prova. Ritmo muito confortável, sem forçar nada. Objetivo: manter o corpo ativo sem cansar.';
+    else guide='<b>Como fazer:</b> Corrida contínua leve por '+km+'km. Ritmo de conversa o tempo todo — se estiver ofegando, reduza. Sem meta de pace, apenas complete a distância confortavelmente.';
   }
   else if(tipo==='qualidade'){
     if(desc.includes('400m')){
       const reps=desc.match(/(\d+)x400m/)?.[1]||'5';
-      guide=`<b>Estrutura:</b> Aquecimento 10min leve → ${reps} repetições de 400m (uma volta de pista) em ritmo forte mas controlado → 90s de caminhada entre cada → Desaquecimento 5min leve. Cada 400m deve ser no mesmo ritmo — não saia explosivo.`;
+      guide='<b>Como fazer:</b> 1. Aqueça 10min em ritmo leve. 2. Corra '+reps+' repetições de 400m (equivale a uma volta numa pista olímpica) em ritmo forte mas controlado — você deve sentir esforço mas não estar no limite. 3. Entre cada 400m, caminhe ou trote por 90 segundos para recuperar. 4. Desaqueça 5min leve. Dica: não saia rápido demais na primeira série — guarde energia para manter o mesmo ritmo em todas.';
     }
     else if(desc.includes('800m')){
-      guide='<b>Estrutura:</b> Aquecimento 10min → 3x800m (duas voltas de pista) em ritmo de esforço controlado → 2min caminhando entre cada → Desaquecimento 5min. Mais longo que o 400m — vá um pouco mais devagar.';
+      guide='<b>Como fazer:</b> 1. Aqueça 10min em ritmo leve. 2. Corra 3 repetições de 800m (duas voltas de pista) em ritmo de esforço — um pouco mais lento que o 400m. 3. Caminhe 2min entre cada série. 4. Desaqueça 5min leve. O 800m treina sua capacidade aeróbica de forma mais específica do que o 400m.';
     }
     else if(desc.includes('1000m')){
       const reps=desc.match(/(\d+)x1000m/)?.[1]||'4';
-      guide=`<b>Estrutura:</b> Aquecimento 10min → ${reps}x1000m (1km cada) em ritmo forte mas sustentável → 2min de recuperação entre cada → Desaquecimento 5min. Objetivo: manter o mesmo pace em todas as repetições.`;
+      guide='<b>Como fazer:</b> 1. Aqueça 10min em ritmo leve. 2. Corra '+reps+' repetições de 1000m (1km cada) em ritmo forte e sustentável — imagine o esforço de uma prova de 5km. 3. Recupere 2min caminhando ou trotando entre cada série. 4. Desaqueça 5min. Objetivo principal: manter o mesmo pace em todas as repetições, não acelerar na última.';
     }
     else if(desc.includes('Fartlek')||desc.includes('fartlek')){
       const reps=desc.match(/(\d+)x/)?.[1]||'5';
       const strong=desc.match(/(\d+)min forte/)?.[1]||'1';
       const easy=desc.match(/(\d+)min leve/)?.[1]||'2';
-      guide=`<b>Estrutura:</b> Aquecimento 5min → ${reps} séries de ${strong}min em ritmo forte (sentir o esforço, mas não sprint) + ${easy}min em ritmo leve de recuperação → Desaquecimento 5min. Diferente do intervalado: sem parar, sem pista, fluxo contínuo.`;
+      guide='<b>Como fazer:</b> 1. Aqueça 5min em ritmo leve. 2. Faça '+reps+' séries assim: corra '+strong+' min em ritmo forte (sente o esforço, respira mais pesado, mas aguenta) → corra '+easy+' min em ritmo leve para recuperar. 3. Desaqueça 5min. Diferente do intervalado: você não para, apenas alterna o ritmo. Pode fazer em qualquer terreno — não precisa de pista.';
     }
     else if(desc.includes('Tempo run')||desc.includes('tempo run')){
       const mins=desc.match(/(\d+)min/)?.[1]||'20';
-      guide=`<b>Estrutura:</b> Aquecimento 10min leve → ${mins}min em ritmo "esforçado mas sustentável" (consegue dizer 2–3 palavras, não frases) → Desaquecimento 5min leve. É o ritmo que você conseguiria manter por 1h numa prova. Treina o limiar anaeróbico.`;
+      guide='<b>Como fazer:</b> 1. Aqueça 10min em ritmo leve. 2. Corra '+mins+' minutos em ritmo "esforçado mas sustentável" — você consegue dizer 2 ou 3 palavras mas não frases inteiras. É o ritmo que você conseguiria manter por 1 hora numa prova. 3. Desaqueça 5–10min leve. Este treino eleva o seu limiar anaeróbico, que é o principal fator que determina seu pace numa meia maratona.';
     }
-    else guide='<b>Estrutura:</b> Aquecimento 10min → treino de qualidade conforme descrito → Desaquecimento 5–10min leve.';
+    else guide='<b>Como fazer:</b> Aquecimento 10min → treino conforme descrito → Desaquecimento 5–10min leve.';
   }
   else if(tipo==='longao'){
-    if(desc.includes('PROVA')) guide='<b>DIA DA PROVA 🏅</b> Aquecimento leve 10min → pace confortável nos primeiros 7km → mantenha até o km 15 → se tiver energia, acelere nos últimos 6km. Hidrate a cada 20min. Você treinou para isso.';
-    else guide=`<b>Estrutura:</b> ${km}km totais em ritmo leve — o mais leve dos seus treinos. Você deve conseguir conversar a semana inteira. Objetivo: tempo em pé, não velocidade. Teste do ritmo: você deve conseguir falar frases inteiras sem parar para respirar. Hidrate a cada 20min. Se o joelho apertar nos últimos km, caminhe sem culpa.`;
+    if(desc.includes('PROVA')||desc.includes('prova')) guide='<b>Dia da prova 🏅</b> 1. Aqueça 10–15min em ritmo muito leve antes da largada. 2. Corra os primeiros 7km mais devagar que o seu ritmo normal — guarde energia. 3. Do km 7 ao 15: mantenha ritmo constante e confortável. 4. Se sobrar energia nos últimos 6km, aumente gradualmente. 5. Beba água a cada 20min. 6. Se o joelho apertar, reduza o ritmo — não pare completamente. Você treinou 27 semanas para isso.';
+    else guide='<b>Como fazer:</b> Corra os '+km+'km no ritmo mais leve possível — este é o treino onde ritmo não importa, apenas completar a distância. Você deve conseguir falar frases inteiras sem parar para respirar do início ao fim. Beba água a cada 20 minutos. Se o joelho apertar nos km finais, intercale com caminhada sem culpa — o objetivo é o tempo em movimento.';
   }
-
-  return guide || 'Siga a descrição do treino. Aquecimento 5min antes e desaquecimento 5min depois sempre.';
+    return guide || 'Siga a descrição do treino. Aquecimento 5min antes e desaquecimento 5min depois sempre.';
 }
 
 function openModal(id,desc,km){
@@ -946,27 +944,14 @@ function importData(){
 }
 
 // ===== TABS =====
-function showTab(id){
+function showTab(id,btn){
   document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
-  const el = document.getElementById('tab-'+id);
-  if(!el) return;
-  el.classList.add('active');
-  document.querySelectorAll('.tab').forEach(t=>{
-    if(t.dataset.tab===id) t.classList.add('active');
-  });
-  if(id==='dash') renderDash();
-  if(id==='plano') renderPlan();
+  document.getElementById('tab-'+id).classList.add('active');
+  if(btn)btn.classList.add('active');
+  if(id==='dash')renderDash();
+  if(id==='plano')renderPlan();
 }
-
-// Event listener para as tabs — mais confiável que onclick inline no mobile
-document.addEventListener('DOMContentLoaded', function(){
-  document.querySelectorAll('.tab[data-tab]').forEach(btn=>{
-    btn.addEventListener('click', function(){
-      showTab(this.dataset.tab);
-    });
-  });
-});
 
 // ===== RENDER ALL =====
 function renderRestBanner(){
