@@ -745,7 +745,7 @@ function getWorkoutGuide(id, desc, km){
   }
   else if(tipo==='longao'){
     if(desc.includes('PROVA')) guide='<b>DIA DA PROVA 🏅</b> Aquecimento leve 10min → pace confortável nos primeiros 7km → mantenha até o km 15 → se tiver energia, acelere nos últimos 6km. Hidrate a cada 20min. Você treinou para isso.';
-    else guide=`<b>Estrutura:</b> ${km}km totais em ritmo leve — o mais leve dos seus treinos. Você deve conseguir conversar a semana inteira. Objetivo: tempo em pé, não velocidade. Hidrate a cada 20min. Se o joelho apertar nos últimos km, caminhe sem culpa.`;
+    else guide=`<b>Estrutura:</b> ${km}km totais em ritmo leve — o mais leve dos seus treinos. Você deve conseguir conversar a semana inteira. Objetivo: tempo em pé, não velocidade. Teste do ritmo: você deve conseguir falar frases inteiras sem parar para respirar. Hidrate a cada 20min. Se o joelho apertar nos últimos km, caminhe sem culpa.`;
   }
 
   return guide || 'Siga a descrição do treino. Aquecimento 5min antes e desaquecimento 5min depois sempre.';
