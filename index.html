@@ -949,10 +949,10 @@ const PLAN = [
 const TOTAL_KM = PLAN.reduce((s,t)=>s+t.km,0);
 const GOAL_DATE = new Date('2026-12-21');
 
-// ===== JSONBIN — dados salvos na nuvem =====
-const JSONBIN_BIN_ID  = '6a2447a6da38895dfe91723c';
-const JSONBIN_API_KEY = '$2a$10$eh.Y1Om9LDi687IqBhxYMOG2TnVtxbP1NRafDOcL6DxitQom8LZT.';
-const BASE_URL = `https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`;
+// ===== STORAGE: localStorage (imediato) + JSONBin (nuvem) =====
+const JSONBIN_URL = 'https://api.jsonbin.io/v3/b/6a2447a6da38895dfe91723c';
+const JSONBIN_KEY = '$2a$10$eh.Y1Om9LDi687IqBhxYMOG2TnVtxbP1NRafDOcL6DxitQom8LZT.';
+const LS_KEY = 'corrida_done_v2';
 
 let _done = null;
 let _saving = false;
@@ -960,61 +960,67 @@ let _saving = false;
 function showToast(msg, cor='#22c55e') {
   let t = document.getElementById('toast');
   if(!t){ t=document.createElement('div'); t.id='toast';
-    t.style.cssText='position:fixed;bottom:1.2rem;left:50%;transform:translateX(-50%);padding:.5rem 1.2rem;border-radius:99px;font-size:.78rem;font-family:monospace;z-index:9999;transition:opacity .4s;pointer-events:none;';
+    t.style.cssText='position:fixed;bottom:1.2rem;left:50%;transform:translateX(-50%);padding:.5rem 1.2rem;border-radius:99px;font-size:.78rem;font-family:monospace;z-index:9999;transition:opacity .4s;pointer-events:none;white-space:nowrap;';
     document.body.appendChild(t); }
   t.textContent=msg; t.style.background=cor; t.style.color='#000'; t.style.opacity='1';
   clearTimeout(t._timer);
-  t._timer=setTimeout(()=>t.style.opacity='0', 2200);
+  t._timer=setTimeout(()=>t.style.opacity='0', 2800);
+}
+
+function lsLoad() {
+  try { return JSON.parse(localStorage.getItem(LS_KEY)||'[]'); } catch { return []; }
+}
+function lsSave(done) {
+  try { localStorage.setItem(LS_KEY, JSON.stringify(done)); } catch {}
+}
+
+async function cloudLoad() {
+  try {
+    const r = await fetch(JSONBIN_URL + '/latest', {
+      headers: { 'X-Master-Key': JSONBIN_KEY }
+    });
+    if (!r.ok) return null;
+    const j = await r.json();
+    return Array.isArray(j?.record?.done) ? j.record.done : null;
+  } catch { return null; }
+}
+
+async function cloudSave(done) {
+  try {
+    await fetch(JSONBIN_URL, {
+      method: 'PUT',
+      headers: { 'Content-Type':'application/json', 'X-Master-Key': JSONBIN_KEY },
+      body: JSON.stringify({ done })
+    });
+  } catch {}
 }
 
 async function loadDone() {
   if (_done !== null) return _done;
-  try {
-    showToast('⏳ Carregando progresso...', '#3b82f6');
-    const r = await fetch(BASE_URL + '/latest', {
-      method: 'GET',
-      headers: {
-        'X-Master-Key': JSONBIN_API_KEY,
-        'X-Access-Key': JSONBIN_API_KEY
-      }
-    });
-    const text = await r.text();
-    const data = JSON.parse(text);
-    if (data.record && Array.isArray(data.record.done)) {
-      _done = data.record.done;
-    } else {
-      _done = [];
+  // 1. Carrega localStorage imediatamente
+  _done = lsLoad();
+  if (_done.length > 0) showToast('✓ ' + _done.length + ' treinos (local)', '#3b82f6');
+  // 2. Tenta nuvem em background — se tiver mais dados, usa nuvem
+  cloudLoad().then(cloud => {
+    if (cloud && cloud.length >= _done.length) {
+      _done = cloud;
+      lsSave(_done);
+      render();
+      showToast('☁ ' + _done.length + ' treinos carregados da nuvem', '#22c55e');
     }
-    showToast('✓ ' + _done.length + ' treinos carregados', '#22c55e');
-  } catch(e) {
-    _done = [];
-    showToast('⚠️ Erro: ' + e.message, '#ef4444');
-  }
+  });
   return _done;
 }
 
 async function saveDone(done) {
-  if (_saving) return;
-  _saving = true;
-  try {
-    const r = await fetch(BASE_URL, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Master-Key': JSONBIN_API_KEY,
-        'X-Access-Key': JSONBIN_API_KEY
-      },
-      body: JSON.stringify({ done: done })
-    });
-    if (r.ok) {
-      showToast('✓ Salvo! (' + done.length + ' treinos)', '#22c55e');
-    } else {
-      showToast('⚠️ Erro ' + r.status, '#ef4444');
-    }
-  } catch(e) {
-    showToast('⚠️ Erro ao salvar: ' + e.message, '#ef4444');
+  // Salva localStorage IMEDIATAMENTE (não perde nunca)
+  lsSave(done);
+  showToast('✓ Salvo! (' + done.length + ' treinos)', '#22c55e');
+  // Salva nuvem em background
+  if (!_saving) {
+    _saving = true;
+    cloudSave(done).finally(() => { _saving = false; });
   }
-  _saving = false;
 }
 
 function getDone() { return _done || []; }
