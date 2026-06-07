@@ -152,6 +152,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .phase-row-weeks{font-family:'DM Mono',monospace;font-size:.72rem;color:var(--muted);text-align:right;}
 .divider{border:none;border-top:1px solid var(--border);margin:1.2rem 0;}
 footer{padding:1.5rem 1.2rem;text-align:center;color:var(--muted);font-size:.72rem;border-top:1px solid var(--border);}
+.slot-preview{font-size:.58rem;color:#60a5fa;margin-top:.25rem;line-height:1.3;text-align:left;display:none;}
+.slot:hover .slot-preview, .slot:focus .slot-preview{display:block;}
 #toast{position:fixed;bottom:1.2rem;left:50%;transform:translateX(-50%);padding:.5rem 1.2rem;border-radius:99px;font-size:.76rem;font-family:'DM Mono',monospace;z-index:9999;transition:opacity .4s;pointer-events:none;opacity:0;white-space:nowrap;}
 </style>
 </head>
@@ -305,6 +307,9 @@ footer{padding:1.5rem 1.2rem;text-align:center;color:var(--muted);font-size:.72r
     <div class="modal-actions">
       <button class="btn-cancel" onclick="closeModal()">Cancelar</button>
       <button class="btn-primary" onclick="saveSession()">✅ Salvar treino</button>
+    </div>
+    <div id="unmark-btn-wrap" style="margin-top:.5rem;display:none">
+      <button class="btn-danger" style="width:100%;padding:.65rem;border-radius:10px;font-size:.8rem" onclick="unmarkSession()">↩ Desmarcar este treino</button>
     </div>
   </div>
 </div>
@@ -697,14 +702,81 @@ function renderProgress(){
 
 // ===== MODAL TREINO =====
 let _modalId=null,_selectedFeeling=null;
+// Guia de treino por tipo e semana
+function getWorkoutGuide(id, desc, km){
+  const tipo = getTipoFromId(id);
+  const wNum = parseInt(id);
+  let guide = '';
+
+  if(tipo==='base'){
+    if(desc.includes('1:1')) guide='<b>Estrutura:</b> Alterne exatamente 2min correndo leve + 2min caminhando. Repita até completar a distância. Sem pressa — ritmo de conversa.';
+    else if(desc.includes('2:1')) guide='<b>Estrutura:</b> 3–4min correndo leve + 1min caminhando. Se sentir fôlego, pode diminuir as paradas. Objetivo: cada semana menos caminhada.';
+    else if(desc.includes('3:1')) guide='<b>Estrutura:</b> 3min correndo + 1min caminhando. Você já deve estar quase parando de caminhar. Ritmo leve o tempo todo.';
+    else if(desc.includes('strides')) guide='<b>Estrutura:</b> Corra leve por 80% da distância. Nos últimos 20%: 4 acelerações de 80m (quase sprint, não sprint). Descanso de 60s entre elas. Melhora cadência sem desgastar.';
+    else if(desc.includes('30min')||desc.includes('35min')||desc.includes('40min')||desc.includes('45min')||desc.includes('50min')){
+      const mins=desc.match(/(\d+)min/)?.[1]||'30';
+      guide=`<b>Estrutura:</b> ${mins}min contínuos em ritmo leve — consegue falar frases inteiras sem ofegar. Não olhe o pace, olhe a frequência cardíaca. Fique abaixo de 75% da FC máx.`;
+    }
+    else guide='<b>Estrutura:</b> Corrida leve e contínua. Ritmo de conversa o tempo todo. Se estiver ofegando, vai devagar demais.';
+  }
+  else if(tipo==='qualidade'){
+    if(desc.includes('400m')){
+      const reps=desc.match(/(\d+)x400m/)?.[1]||'5';
+      guide=`<b>Estrutura:</b> Aquecimento 10min leve → ${reps} repetições de 400m (uma volta de pista) em ritmo forte mas controlado → 90s de caminhada entre cada → Desaquecimento 5min leve. Cada 400m deve ser no mesmo ritmo — não saia explosivo.`;
+    }
+    else if(desc.includes('800m')){
+      guide='<b>Estrutura:</b> Aquecimento 10min → 3x800m (duas voltas de pista) em ritmo de esforço controlado → 2min caminhando entre cada → Desaquecimento 5min. Mais longo que o 400m — vá um pouco mais devagar.';
+    }
+    else if(desc.includes('1000m')){
+      const reps=desc.match(/(\d+)x1000m/)?.[1]||'4';
+      guide=`<b>Estrutura:</b> Aquecimento 10min → ${reps}x1000m (1km cada) em ritmo forte mas sustentável → 2min de recuperação entre cada → Desaquecimento 5min. Objetivo: manter o mesmo pace em todas as repetições.`;
+    }
+    else if(desc.includes('Fartlek')||desc.includes('fartlek')){
+      const reps=desc.match(/(\d+)x/)?.[1]||'5';
+      const strong=desc.match(/(\d+)min forte/)?.[1]||'1';
+      const easy=desc.match(/(\d+)min leve/)?.[1]||'2';
+      guide=`<b>Estrutura:</b> Aquecimento 5min → ${reps} séries de ${strong}min em ritmo forte (sentir o esforço, mas não sprint) + ${easy}min em ritmo leve de recuperação → Desaquecimento 5min. Diferente do intervalado: sem parar, sem pista, fluxo contínuo.`;
+    }
+    else if(desc.includes('Tempo run')||desc.includes('tempo run')){
+      const mins=desc.match(/(\d+)min/)?.[1]||'20';
+      guide=`<b>Estrutura:</b> Aquecimento 10min leve → ${mins}min em ritmo "esforçado mas sustentável" (consegue dizer 2–3 palavras, não frases) → Desaquecimento 5min leve. É o ritmo que você conseguiria manter por 1h numa prova. Treina o limiar anaeróbico.`;
+    }
+    else guide='<b>Estrutura:</b> Aquecimento 10min → treino de qualidade conforme descrito → Desaquecimento 5–10min leve.';
+  }
+  else if(tipo==='longao'){
+    if(desc.includes('PROVA')) guide='<b>DIA DA PROVA 🏅</b> Aquecimento leve 10min → pace confortável nos primeiros 7km → mantenha até o km 15 → se tiver energia, acelere nos últimos 6km. Hidrate a cada 20min. Você treinou para isso.';
+    else guide=`<b>Estrutura:</b> ${km}km totais em ritmo leve — o mais leve dos seus treinos. Você deve conseguir conversar a semana inteira. Objetivo: tempo em pé, não velocidade. Hidrate a cada 20min. Se o joelho apertar nos últimos km, caminhe sem culpa.`;
+  }
+
+  return guide || 'Siga a descrição do treino. Aquecimento 5min antes e desaquecimento 5min depois sempre.';
+}
+
 function openModal(id,desc,km){
   _modalId=id;_selectedFeeling=null;
   document.getElementById('modal-title').textContent=desc;
-  document.getElementById('modal-sub').textContent=`${km}km · ${tipoLabel(id.slice(-1)==='a'?'base':id.slice(-1)==='b'?'qualidade':'longao')}`;
+  document.getElementById('modal-sub').textContent=`${km}km · ${tipoLabel(getTipoFromId(id))}`;
   document.getElementById('input-time').value='';
   document.getElementById('input-pace').value='';
   document.getElementById('input-notes').value='';
   document.querySelectorAll('#modal-overlay .feeling-btn').forEach(b=>b.classList.remove('selected'));
+
+  // Guia do treino
+  const guide = getWorkoutGuide(id, desc, km);
+  let guideEl = document.getElementById('workout-guide');
+  if(!guideEl){
+    guideEl = document.createElement('div');
+    guideEl.id = 'workout-guide';
+    guideEl.style.cssText = 'background:rgba(59,130,246,.08);border:1px solid rgba(59,130,246,.3);border-radius:10px;padding:.9rem;margin-bottom:1rem;font-size:.78rem;color:var(--muted);line-height:1.6;';
+    document.querySelector('.modal').insertBefore(guideEl, document.querySelector('.form-group'));
+  }
+  guideEl.innerHTML = `<div style="font-size:.65rem;text-transform:uppercase;letter-spacing:.08em;color:#60a5fa;font-family:'DM Mono',monospace;margin-bottom:.4rem">📋 Como fazer este treino</div>${guide}`;
+
+  // Mostra/esconde botão desmarcar
+  const isDone = STATE.done.includes(id);
+  const unmarkWrap = document.getElementById('unmark-btn-wrap');
+  if(unmarkWrap) unmarkWrap.style.display = isDone ? 'block' : 'none';
+
+  // Preenche log existente
   const log=STATE.logs[id];
   if(log){
     if(log.time)document.getElementById('input-time').value=log.time;
@@ -715,6 +787,12 @@ function openModal(id,desc,km){
   document.getElementById('modal-overlay').classList.add('open');
 }
 function closeModal(){document.getElementById('modal-overlay').classList.remove('open');_modalId=null;}
+function unmarkSession(){
+  if(!_modalId)return;
+  STATE.done=STATE.done.filter(d=>d!==_modalId);
+  delete STATE.logs[_modalId];
+  saveState(STATE);closeModal();showToast('↩ Treino desmarcado','#6b6b85');renderAll();
+}
 function selectFeeling(f,btn){_selectedFeeling=f;document.querySelectorAll('#modal-overlay .feeling-btn').forEach(b=>b.classList.remove('selected'));btn.classList.add('selected');}
 function getRestDays(tipo, feeling){
   // Base: descanso mínimo por tipo
