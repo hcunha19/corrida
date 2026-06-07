@@ -1006,11 +1006,10 @@ async function saveDone(done) {
       },
       body: JSON.stringify({ done: done })
     });
-    const data = await r.json();
-    if (data.record) {
+    if (r.ok) {
       showToast('✓ Salvo! (' + done.length + ' treinos)', '#22c55e');
     } else {
-      showToast('⚠️ Resposta inesperada', '#f97316');
+      showToast('⚠️ Erro ' + r.status, '#ef4444');
     }
   } catch(e) {
     showToast('⚠️ Erro ao salvar: ' + e.message, '#ef4444');
