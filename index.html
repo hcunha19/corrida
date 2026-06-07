@@ -977,22 +977,40 @@ function lsSave(done) {
 async function cloudLoad() {
   try {
     const r = await fetch(JSONBIN_URL + '/latest', {
-      headers: { 'X-Master-Key': JSONBIN_KEY }
+      headers: {
+        'X-Master-Key': JSONBIN_KEY,
+        'X-Bin-Private': 'true'
+      }
     });
-    if (!r.ok) return null;
+    if (!r.ok) { showToast('☁ Load erro ' + r.status, '#f97316'); return null; }
     const j = await r.json();
     return Array.isArray(j?.record?.done) ? j.record.done : null;
-  } catch { return null; }
+  } catch(e) {
+    showToast('☁ Load falhou: ' + e.message, '#ef4444');
+    return null;
+  }
 }
 
 async function cloudSave(done) {
   try {
-    await fetch(JSONBIN_URL, {
+    const r = await fetch(JSONBIN_URL, {
       method: 'PUT',
-      headers: { 'Content-Type':'application/json', 'X-Master-Key': JSONBIN_KEY },
-      body: JSON.stringify({ done })
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Master-Key': JSONBIN_KEY,
+        'X-Bin-Private': 'true'
+      },
+      body: JSON.stringify({ done: done })
     });
-  } catch {}
+    const status = r.status;
+    if (status === 200) {
+      showToast('☁ Nuvem OK', '#22c55e');
+    } else {
+      showToast('☁ Nuvem: erro ' + status, '#f97316');
+    }
+  } catch(e) {
+    showToast('☁ Sem nuvem: ' + e.message, '#ef4444');
+  }
 }
 
 async function loadDone() {
